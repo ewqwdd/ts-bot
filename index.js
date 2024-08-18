@@ -1,77 +1,74 @@
-const { Telegraf } = require("telegraf");
+const { Telegraf, Markup } = require("telegraf");
 const dotenv = require("dotenv");
 dotenv.config();
-// Замените на токен вашего бота
-const bot = new Telegraf(process.env.TOKEN);
-const express = require("express");
-const app = express();
-const port = process.env.PORT;
 
-// Замените на ваш канал
-const channelUsername = process.env.CHANNEL;
+const express = require("express");
+const mongoose = require("mongoose");
+const { helloMessage, thanksMessage, alreadySubscribed } = require("./messages");
+const User = require("./User");
+
+const app = express();
+const bot = new Telegraf(process.env.TOKEN);
+const port = process.env.PORT || 3000; // Порт по умолчанию
+
+const sticker = 'CAACAgIAAxkBAAMTZsKDdSGJNjSouqEwWSI5aOWII3EAAksCAAJWnb0KYlBF0FD6cZw1BA'
 
 app.use(express.json());
 
-// bot.command("check", async (ctx) => {
-//   const userId = ctx.from.id;
+// Запуск бота
+bot.launch();
 
-//   try {
-//     const chatMember = await ctx.telegram.getChatMember(channelUsername, userId);
+bot.start(async (ctx) => {
+  await ctx.reply(helloMessage, Markup.inlineKeyboard([
+    Markup.button.callback('Записаться', 'sign_up')
+  ]));
+});
 
-//     if (
-//       chatMember.status === "member" ||
-//       chatMember.status === "administrator" ||
-//       chatMember.status === "creator"
-//     ) {
-//       ctx.reply("Вы подписаны на канал!");
-//     } else {
-//       ctx.reply("Вы не подписаны на канал.");
-//     }
-//   } catch (error) {
-//     console.error("Error checking membership:", error);
-//     ctx.reply("Произошла ошибка при проверке подписки. Пожалуйста, попробуйте позже.");
-//   }
-// });
+bot.on('sticker', (ctx) => {
+  console.log(ctx.message);
+});
 
-// bot.launch();
-
-app.post("/bot/check", async (req, res) => {
-  const userId = req.body.telegramId;
-
-  if (!userId) {
-    return res.status(400).json({
-      message: "No telegramId provided",
-    });
-  }
-
+bot.action('sign_up', async (ctx) => {
   try {
-    const chatMember = await bot.telegram.getChatMember(channelUsername, userId);
-
-    if (
-      chatMember.status === "member" ||
-      chatMember.status === "administrator" ||
-      chatMember.status === "creator"
-    ) {
-      return res.status(200).json({
-        message: "User is subscribed to the channel",
-        isSubscribed: true,
+    const { id: telegramId, username } = ctx.from;
+    let user = await User.findOne({ telegramId });
+    let message
+    if (!user) {
+      user = new User({
+        telegramId,
+        username,
+        isAlphaTester: true
       });
+      message = thanksMessage
     } else {
-      return res.status(200).json({
-        message: "User is not subscribed to the channel",
-        isSubscribed: false,
-      });
+      user.isAlphaTester = true;
+      user.username = username;
+      message = alreadySubscribed
     }
+
+    await user.save();
+    
+    const totalUsers = await User.countDocuments();
+    await ctx.reply(message(totalUsers));
+    await ctx.replyWithSticker(sticker);
+
   } catch (error) {
-    console.error("Error checking membership:", error);
-    return res.status(500).json({
-      message: "An error occurred while checking subscription",
-      error: error.message,
-      isSubscribed: false,
-    });
+    console.error('Error during sign up:', error);
+    await ctx.reply('Произошла ошибка, попробуйте снова позже.');
   }
 });
 
+// Подключение к MongoDB
+mongoose.connect(process.env.MONGO_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log('Mongodb is connected');
+}).catch((error) => {
+  console.error('MongoDB connection error:', error);
+});
+
+// Запуск сервера
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`App listening on port ${port}`);
 });
