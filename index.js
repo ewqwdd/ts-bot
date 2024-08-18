@@ -49,8 +49,8 @@ bot.action('sign_up', async (ctx) => {
     await user.save();
     
     const totalUsers = await User.countDocuments();
-    await ctx.reply(message(totalUsers));
     await ctx.replyWithSticker(sticker);
+    await ctx.reply(message(totalUsers));
 
   } catch (error) {
     console.error('Error during sign up:', error);
