@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    mail9424: {
+      type: Boolean,
+      required: false,
+    }
   },
   {
     timestamps: true, // Это автоматически добавляет поля createdAt и updatedAt
