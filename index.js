@@ -35,9 +35,12 @@ bot.start(async (ctx) => {
     Markup.button.webApp('Открыть Touch Skins', 'https://touchskins.io'),
     Markup.button.url('Вступить в сообщество', 'https://t.me/touchskins')
   ]));
+  await ctx.replyWithDocument('BQACAgIAAyEFAASDsHo8AAN7ZtmtF9yWdGqj36xR9SSa8S9uhdgAAnBXAAJ4P8lKDIL62WXt8_g2BA', {
+    caption: 'Последняя версия',
+  });
 });
 
-// bot.on('sticker', (ctx) => {
+// bot.on('message', (ctx) => {
 //   console.log(ctx.message);
 // });
 
